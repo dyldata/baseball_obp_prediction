@@ -32,7 +32,7 @@ data$OBP_21_pred <- predict(model, newdata=data)
 ```
 ## LR Summary Stats
 <p align="center">
-<img width="700" height="500" src=images/lm_stats.png
+<img width="700" height="500" src=images/lm_stats.png =250x250
 </p>
   
 ## LR Plot Code
