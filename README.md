@@ -6,3 +6,16 @@ Fielding metrics, batted ball data, player movement data and various laboratory 
 -	Laboratory or Gym-based Testing: various metrics (peak power, rate of force development, ground reaction forces) that have been correlated to bat swing velocity, home runs, total bases, stolen bases and fielding performance (Sources: 1, 2, 3, 4, 5) can be captured outside of the game. Such as performing a 1-repetition max back squat, a force-velocity profile (e.g., vertical jump testing with and without load, isometric mid-thigh pull, etc.) and upper body strength testing.
 
 For this specific project, my goals were three-fold: (a) predict a players on-base percentage (OBP) for the 2021 season with the given data using a basic linear regression model, (b) suggest a better model that could be applied to handle data sets with missing data, and (d) suggest other metrics that could be added into the predictive model to better predict a players OBP.
+
+## Packages
+```
+suppressPackageStartupMessages({
+  suppressWarnings({
+    install.packages("tidyverse")
+    install.packages("plotly")
+    install.packages("rpart")
+    install.packages("rpart.plot")
+    install.packages("scales")
+  })
+})
+```
