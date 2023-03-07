@@ -1,11 +1,11 @@
-There are multiple approaches we can take to understand Player X’s problem areas through different data sources both during training and in-game: 
-Fielding metrics, batted ball data, player movement data and various laboratory or gym-based producers can be utilized to quantify fielding performance.
+# Baseball On-base Percentage Prediction
+For this specific project, my goals were three-fold: (a) predict a players on-base percentage (OBP) for the 2021 season with the given data using a basic linear regression model, (b) suggest a better model that could be applied to handle data sets with missing data, and (d) suggest other metrics that could be added into the predictive model to better predict a players OBP.
+
+There are multiple approaches we can take to understand baseball players OBP through different data sources both during training and in-game: Fielding metrics, batted ball data, player movement data and various laboratory or gym-based producers can be utilized to quantify fielding performance.
 
 -	Batted Ball Data: we can take data from Statcast, FanGraphs or via various packages on Github (e.g., pitchRx, mlbgameday, baseball-analytics) to identify patterns or trends that Player X has struggled with in previous games. Primary data of interest could include exit velocity (EV), launch angle (LA), distance (D), and the type of hit that Player X may be struggling with (e.g., does Player X have a tough time predicting where fly balls will be going leading to a poor first step (FS)). Additionally, we can present the performance of league averages to identify areas where they may be underperforming when compared to other players.
 -	Fielding Metrics: First step (FS), speed (S), throwing accuracy, and exchange time (ET; transfer the ball from the glove to throwing hand) are all key metrics that could elucidate if a fielder needs to become more conditioned, improve their footwork or better judge fly balls. Most of this data can be collected via Statcast or FanGraphs, but additional insights and context can be gained by looking at video footage for technical insights (such as Baseball Savant or Kintrax).
 -	Laboratory or Gym-based Testing: various metrics (peak power, rate of force development, ground reaction forces) that have been correlated to bat swing velocity, home runs, total bases, stolen bases and fielding performance (Sources: 1, 2, 3, 4, 5) can be captured outside of the game. Such as performing a 1-repetition max back squat, a force-velocity profile (e.g., vertical jump testing with and without load, isometric mid-thigh pull, etc.) and upper body strength testing.
-
-For this specific project, my goals were three-fold: (a) predict a players on-base percentage (OBP) for the 2021 season with the given data using a basic linear regression model, (b) suggest a better model that could be applied to handle data sets with missing data, and (d) suggest other metrics that could be added into the predictive model to better predict a players OBP.
 
 ## Packages
 ```
@@ -18,4 +18,29 @@ suppressPackageStartupMessages({
     install.packages("scales")
   })
 })
+```
+  ## Example Code for Model
+```
+# Create a new column for total plate appearances
+data$PA_total <- data$PA_21 + data$PA_20 + data$PA_19 + data$PA_18 + data$PA_17 + data$PA_16
+
+# Fit a linear regression model to predict OBP_21 based on age, prior OBP, and total plate appearances
+model <- lm(OBP_21 ~ age + OBP_20 + OBP_19 + OBP_18 + OBP_17 + OBP_16 + PA_total, data=data)
+
+# Predict OBP_21 for each player
+data$OBP_21_pred <- predict(model, newdata=data)
+```
+## Time on Pedal
+<p align="center">
+<img width="700" height="500" src=images/lm_figure.png
+</p>
+  ## Example Code for Plots
+  ```
+  
+  
+  ggplot(f1seconds_p, aes(x=ttpedal, y=cornertime)) + geom_point(aes(color = track)) + 
+  scale_x_continuous("Time on Pedal (seconds)") +
+  scale_y_continuous("Corner Time (seconds)") + 
+  theme(panel.grid.major=element_line(NA), panel.grid.minor=element_line(NA), legend.position="bottom") + 
+  labs(title="Time on Pedal on Corner Times") + facet_wrap( ~ track) + stat_smooth(method="lm", col="red") + labs(color="Track:")
 ```
