@@ -30,11 +30,31 @@ model <- lm(OBP_21 ~ age + OBP_20 + OBP_19 + OBP_18 + OBP_17 + OBP_16 + PA_total
 # Predict OBP_21 for each player
 data$OBP_21_pred <- predict(model, newdata=data)
 ```
-## Time on Pedal
+## LR Summary Stats
+<p align="center">
+<img width="700" height="500" src=images/lm_stats.png
+</p>
+  
+## LR Plot Code
+```{r plot}
+# create the ggplot object
+p <- ggplot(data, aes(x=OBP_21, y=OBP_21_pred, text=paste("Name: ", Name, "<br>",
+                                                          "Predicted OBP: ", round(OBP_21_pred, 3), "<br>",
+                                                          "Actual OBP: ", OBP_21, "<br>",
+                                                          "Age: ", age))) +
+  geom_point(aes(color = abs(OBP_21 - OBP_21_pred))) +
+  scale_color_gradient(low = "green", high = "red") +
+  geom_abline(intercept=0, slope=1) +
+  labs(x="Actual On-Base Percentage", y="Predicted On-Base Percentage") +
+  ggtitle("Actual vs. Predicted On-Base Percentage by Player") +
+  theme_bw() +
+  theme(text = element_text(size = 10))
+
+# convert the ggplot object to a plotly object
+ggplotly(p, tooltip = "text")
+```
+## LR Plot
 <p align="center">
 <img width="700" height="500" src=images/lm_figure.png
 </p>
   
-## Example Code for Plots
-```
-```
