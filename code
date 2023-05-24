@@ -1,0 +1,178 @@
+---
+title: "Predicting OBP"
+author: "Dylan Dahlquist, MSc, CSCS"
+date: "2023-02-26"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Packages
+```{r}
+# Packages
+suppressPackageStartupMessages({
+  suppressWarnings({
+    install.packages("tidyverse")
+    install.packages("plotly")
+    install.packages("rpart")
+    install.packages("rpart.plot")
+    install.packages("scales")
+  })
+})
+```
+## Libraries
+```{r}
+# Libraries
+suppressPackageStartupMessages({
+  suppressWarnings({
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(rpart)
+library(rpart.plot)
+library(scales)
+  })
+})
+```
+## Loading Data
+```{r load data}
+# Set WD
+setwd("C:/Users/dylda/Dropbox/Grad School/PhD Round 3")
+
+# Load Data
+data <- read.csv("obp.csv")
+```
+## Inspect Data
+```{r inspect data}
+str(data)
+```
+## Calculate Age of each player in 2021
+```{r age}
+data$age <- as.numeric(format(as.Date("2021-01-01"),"%Y")) - as.numeric(format(as.Date(data$birth_date),"%Y"))
+```
+## Linear Regression (LR) Model
+```{r model}
+# Create a new column for total plate appearances
+data$PA_total <- data$PA_21 + data$PA_20 + data$PA_19 + data$PA_18 + data$PA_17 + data$PA_16
+
+# Fit a linear regression model to predict OBP_21 based on age, prior OBP, and total plate appearances
+model <- lm(OBP_21 ~ age + OBP_20 + OBP_19 + OBP_18 + OBP_17 + OBP_16 + PA_total, data=data)
+
+# Predict OBP_21 for each player
+data$OBP_21_pred <- predict(model, newdata=data)
+```
+## LR Results Table
+```{r}
+# Create a table of predicted and actual OBP_21 values, and their difference
+prediction_table <- select(data, Name, playerid, OBP_21_pred, OBP_21) %>%
+  mutate(diff = OBP_21 - OBP_21_pred)
+
+print(prediction_table)
+```
+## LR Summary Statistics
+```{r statistics}
+summary(model)
+```
+## LR MAE
+```{r}
+mae <- mean(abs(prediction_table$diff), na.rm=TRUE)
+print(paste("Mean Absolute Error:", round(mae, 3)))
+```
+## LR Plot
+```{r plot}
+# create the ggplot object
+p <- ggplot(data, aes(x=OBP_21, y=OBP_21_pred, text=paste("Name: ", Name, "<br>",
+                                                          "Predicted OBP: ", round(OBP_21_pred, 3), "<br>",
+                                                          "Actual OBP: ", OBP_21, "<br>",
+                                                          "Age: ", age))) +
+  geom_point(aes(color = abs(OBP_21 - OBP_21_pred))) +
+  scale_color_gradient(low = "green", high = "red") +
+  geom_abline(intercept=0, slope=1) +
+  labs(x="Actual On-Base Percentage", y="Predicted On-Base Percentage") +
+  ggtitle("Actual vs. Predicted On-Base Percentage by Player") +
+  theme_bw() +
+  theme(text = element_text(size = 10))
+
+# convert the ggplot object to a plotly object
+ggplotly(p, tooltip = "text")
+```
+## Decision Tree (DT) Model
+```{r}
+# Create a new column for total plate appearances
+data$PA_total <- data$PA_21 + data$PA_20 + data$PA_19 + data$PA_18 + data$PA_17 + data$PA_16
+
+# Create a new data set with only the variables we want to use in the model
+model_data <- data[c("age", "OBP_20", "OBP_19", "OBP_18", "OBP_17", "OBP_16", "PA_total", "OBP_21")]
+
+# Remove rows with missing values
+model_data <- na.omit(model_data)
+
+# Split data into training and testing sets
+set.seed(123)
+train_index <- sample(nrow(model_data), 0.8 * nrow(model_data))
+train_data <- model_data[train_index, ]
+test_data <- model_data[-train_index, ]
+
+# Fit a decision tree model to predict OBP_21 based on age, prior OBP, and total plate appearances
+model <- rpart(OBP_21 ~ age + OBP_20 + OBP_19 + OBP_18 + OBP_17 + OBP_16 + PA_total, data=train_data)
+
+# Predict OBP_21 for each player in the test data set
+predictions <- predict(model, newdata=test_data)
+
+# Calculate the mean absolute error (MAE) between the predicted and actual OBP_21 values
+MAE <- mean(abs(predictions - test_data$OBP_21))
+```
+## DT Results Table
+```{r}
+# Create a table of predicted and actual OBP_21 values, and their difference
+prediction_table <- data.frame(Name = data$Name[-train_index], playerid = data$playerid[-train_index], OBP_21_pred = predict(model, newdata=data[-train_index,]), OBP_21 = data$OBP_21[-train_index])
+prediction_table$diff <- prediction_table$OBP_21 - prediction_table$OBP_21_pred
+
+print(prediction_table)
+```
+## DT Summary Statistics
+```{r}
+print(paste("Mean Absolute Error:", round(MAE, 3)))
+```
+```{r}
+rpart.plot(model)
+```
+## DT Plot
+```{r}
+# Add predicted and actual OBP_21 values to the test data frame
+test_data$OBP_21_pred <- predictions
+test_data$diff <- abs(test_data$OBP_21 - test_data$OBP_21_pred)
+
+# Set threshold for color scale
+threshold <- 0.02
+
+# Create color scale
+colors <- c("red", "yellow", "green")
+limits <- c(0, threshold, 1)
+color_scale <- colorRamp(colors)(seq(limits[1], limits[3], length = 100))
+
+# Create color scale for threshold lines
+line_scale <- c("red", "blue", "blue")
+
+# Create plot
+plot <- plot_ly(data = test_data, x = ~OBP_21, y = ~OBP_21_pred, 
+                type = "scatter", mode = "markers",
+                marker = list(color = test_data$diff, colorscale = list(cbind(seq(0, 1, length.out = 100), color_scale))),
+                text = paste("Predicted OBP_21: ", round(test_data$OBP_21_pred, 3), "<br>",
+                             "Actual OBP_21: ", round(test_data$OBP_21, 3)),
+                hoverinfo = "text",
+                opacity = 0.7) %>%
+  layout(title = "Actual vs. Predicted OBP_21",
+         xaxis = list(title = "Actual OBP_21", range = c(0.2,0.45)),
+         yaxis = list(title = "Predicted OBP_21", range = c(0.2,0.45)),
+         shapes = list(
+           list(type = "line", x0 = 0.2, y0 = 0.2, x1 = 0.6, y1 = 0.6, line = list(color = line_scale[1], width = 2, dash = "dash")),
+           list(type = "line", x0 = 0.2, y0 = 0.2 + threshold, x1 = 0.6, y1 = 0.6 + threshold, line = list(color = line_scale[2], width = 2, dash = "dot")),
+           list(type = "line", x0 = 0.2, y0 = 0.2 - threshold, x1 = 0.6, y1 = 0.6 - threshold, line = list(color = line_scale[3], width = 2, dash = "dot"))
+         ))
+
+plot
+```
